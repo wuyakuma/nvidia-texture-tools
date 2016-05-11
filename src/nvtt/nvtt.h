@@ -472,7 +472,8 @@ namespace nvtt
         NVTT_API void range(int channel, float * rangeMin, float * rangeMax, int alpha_channel = -1, float alpha_ref = 0.f) const;
 
         // Texture data.
-        NVTT_API bool load(const char * fileName, bool * hasAlpha = 0);
+		NVTT_API bool load(const char * fileName, bool * hasAlpha = 0);
+		NVTT_API bool loadFromMemory(const char * fileName, const unsigned char * mem, unsigned int size, bool * hasAlpha = 0);
         NVTT_API bool save(const char * fileName, bool hasAlpha = 0, bool hdr = 0) const;
         NVTT_API bool setImage(int w, int h, int d);
         NVTT_API bool setImage(InputFormat format, int w, int h, int d, const void * data);

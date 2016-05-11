@@ -24,6 +24,8 @@
 
 #include "Surface.h"
 
+#include "nvcore/StdStream.h"
+
 #include "nvmath/Vector.inl"
 #include "nvmath/Matrix.inl"
 #include "nvmath/Color.h"
@@ -589,6 +591,93 @@ bool Surface::load(const char * fileName, bool * hasAlpha/*= NULL*/)
     m->image = img.release();
 
     return true;
+}
+
+bool Surface::loadFromMemory(const char * fileName, const unsigned char * mem, unsigned int size, bool * hasAlpha)
+{
+	nvDebugCheck(fileName != NULL);
+
+	MemoryInputStream stream(mem, size);
+
+	if (stream.isError()) {
+		return NULL;
+	}
+
+	AutoPtr<FloatImage> img(ImageIO::loadFloat(fileName, stream));
+	if (img == NULL) {
+		// Try loading as DDS.
+		if (nv::strEqual(nv::Path::extension(fileName), ".dds")) {
+			nv::DirectDrawSurface dds;
+			if (dds.load(new MemoryInputStream(mem, size))) {
+				if (dds.header.isBlockFormat()) {
+					int w = dds.surfaceWidth(0);
+					int h = dds.surfaceHeight(0);
+					uint size = dds.surfaceSize(0);
+
+					void * data = malloc(size);
+					dds.readSurface(0, 0, data, size);
+
+					// @@ Handle all formats! @@ Get nvtt format from dds.surfaceFormat() ?
+
+					if (dds.header.hasDX10Header()) {
+						if (dds.header.header10.dxgiFormat == DXGI_FORMAT_BC6H_UF16) {
+							this->setImage2D(nvtt::Format_BC6, nvtt::Decoder_D3D10, w, h, data);
+						}
+						else {
+							// @@
+							nvCheck(false);
+						}
+					}
+					else {
+						uint fourcc = dds.header.pf.fourcc;
+						if (fourcc == FOURCC_DXT1) {
+							this->setImage2D(nvtt::Format_BC1, nvtt::Decoder_D3D10, w, h, data);
+						}
+						else if (fourcc == FOURCC_DXT5) {
+							this->setImage2D(nvtt::Format_BC3, nvtt::Decoder_D3D10, w, h, data);
+						}
+						else {
+							// @@ 
+							nvCheck(false);
+						}
+					}
+
+					free(data);
+				}
+				else {
+					Image img;
+					dds.mipmap(&img, /*face=*/0, /*mipmap=*/0);
+
+					int w = img.width();
+					int h = img.height();
+					int d = img.depth();
+
+					// @@ Add support for all pixel formats.
+
+					this->setImage(nvtt::InputFormat_BGRA_8UB, w, h, d, img.pixels());
+				}
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	detach();
+
+	if (hasAlpha != NULL) {
+		*hasAlpha = (img->componentCount() == 4);
+	}
+
+	// @@ Have loadFloat allocate the image with the desired number of channels.
+	img->resizeChannelCount(4);
+
+	delete m->image;
+	m->image = img.release();
+
+	return true;
+
 }
 
 bool Surface::save(const char * fileName, bool hasAlpha/*=0*/, bool hdr/*=0*/) const
