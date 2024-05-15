@@ -1,4 +1,4 @@
-// This code is in the public domain -- Ignacio Castaño <castano@gmail.com>
+// This code is in the public domain -- Ignacio CastaÃ±o <castano@gmail.com>
 
 #include "nvthread.h"
 
@@ -8,7 +8,9 @@
 #include "Win32.h"
 #elif NV_OS_UNIX
 #include <sys/types.h>
+#if !NV_OS_LINUX
 #include <sys/sysctl.h>
+#endif
 #include <unistd.h>
 #elif NV_OS_DARWIN
 #import <stdio.h>
@@ -85,10 +87,12 @@ uint nv::processorCount() {
 
     return count;
 #elif NV_OS_ORBIS
-    return 6;
+	return 6;
+#elif NV_OS_DURANGO
+	return 6;
 #elif NV_OS_XBOX
     return 3; // or 6?
-#elif NV_OS_LINUX // Linux, Solaris, & AIX
+#elif NV_OS_LINUX || NV_OS_NETBSD // Linux, Solaris, & AIX
     return sysconf(_SC_NPROCESSORS_ONLN);
 #elif NV_OS_DARWIN || NV_OS_FREEBSD || NV_OS_OPENBSD
     int numCPU;
@@ -98,7 +102,7 @@ uint nv::processorCount() {
     // set the mib for hw.ncpu
     mib[0] = CTL_HW;
 
-#if NV_OS_OPENBSD
+#if NV_OS_OPENBSD || NV_OS_FREEBSD
     mib[1] = HW_NCPU;
 #else
     mib[1] = HW_AVAILCPU;

@@ -61,11 +61,31 @@ namespace nv {
 #elif POSH_CPU_STRONGARM || POSH_CPU_AARCH64
         // need more specific cpu type for armv7?
         // also utilizes a full barrier
-        // currently treating laod like x86 - this could be wrong
+        // currently treating load like x86 - this could be wrong
         
         // this is the easiest but slowest way to do this
         nvCompilerReadWriteBarrier();
 		uint32 ret = *ptr; // replace with ldrex?
+        nvCompilerReadWriteBarrier();
+        return ret;
+#elif POSH_CPU_PPC64
+        // need more specific cpu type for ppc64?
+        // also utilizes a full barrier
+        // currently treating load like x86 - this could be wrong
+
+        // this is the easiest but slowest way to do this
+        nvCompilerReadWriteBarrier();
+		uint32 ret = *ptr; // replace with ldrex?
+        nvCompilerReadWriteBarrier();
+        return ret;
+#elif POSH_CPU_E2K
+        // need more specific cpu type for e2k?
+        // also utilizes a full barrier
+        // currently treating load like x86 - this could be wrong
+
+        // this is the easiest but slowest way to do this
+        nvCompilerReadWriteBarrier();
+        uint32 ret = *ptr; // replace with ldrex?
         nvCompilerReadWriteBarrier();
         return ret;
 #else
@@ -87,9 +107,24 @@ namespace nv {
         nvCompilerReadWriteBarrier();
 		*ptr = value; //strex?
 		nvCompilerReadWriteBarrier();
+#elif POSH_CPU_PPC64
+        // this is the easiest but slowest way to do this
+        nvCompilerReadWriteBarrier();
+		*ptr = value; //strex?
+		nvCompilerReadWriteBarrier();
+#elif POSH_CPU_E2K
+        // this is the easiest but slowest way to do this
+        nvCompilerReadWriteBarrier();
+        *ptr = value; //strex?
+        nvCompilerReadWriteBarrier();
 #else
 #error "Atomics not implemented."
 #endif
+    }
+    
+    inline void storeRelease(volatile float * ptr, float value)
+    {
+        storeRelease((uint32 *)ptr, *(uint32 *)&value);
     }
 
 
@@ -168,7 +203,6 @@ namespace nv {
 
 
 #elif NV_CC_CLANG && (NV_OS_IOS || NV_OS_DARWIN)
-    NV_COMPILER_CHECK(sizeof(uint32) == sizeof(long));
 
     //ACS: Use Apple's atomics instead? I don't know if these are better in any way; there are non-barrier versions too. There's no OSAtomicSwap32 tho'
     /*
@@ -239,7 +273,6 @@ namespace nv {
 
 
 #elif NV_CC_CLANG && POSH_CPU_STRONGARM
-    NV_COMPILER_CHECK(sizeof(uint32) == sizeof(long));
     
     inline uint32 atomicIncrement(uint32 * value)
     {

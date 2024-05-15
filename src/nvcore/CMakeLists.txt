@@ -10,6 +10,7 @@ SET(CORE_SRCS
     DefsVcWin32.h
     FileSystem.h FileSystem.cpp
     ForEach.h
+    Library.h Library.cpp
     Memory.h Memory.cpp
     Ptr.h
     RefCounted.h
@@ -38,9 +39,12 @@ ENDIF(NVCORE_SHARED)
 
 TARGET_LINK_LIBRARIES(nvcore ${LIBS})
 
+# On NetBSD and FreeBSD backtrace() is provided by libexecinfo, not libc.
+if (CMAKE_SYSTEM_NAME MATCHES "NetBSD" OR CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+     TARGET_LINK_LIBRARIES(nvcore execinfo)
+endif()
+
 INSTALL(TARGETS nvcore
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib/static)
-
-
